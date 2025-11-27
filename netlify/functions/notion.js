@@ -1,4 +1,6 @@
 exports.handler = async (event, context) => {
+ console.log("TOKEN IN NETLIFY:", process.env.NOTION_TOKEN);
+
   try {
     const response = await fetch(
       "https://api.notion.com/v1/databases/2b2fef65a2c18086a3fffc774b6e7aeb/query",
