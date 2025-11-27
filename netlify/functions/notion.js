@@ -7,16 +7,17 @@ exports.handler = async (event, context) => {
         headers: {
           "Content-Type": "application/json",
           "Notion-Version": "2022-06-28",
-          "Authorization": "Bearer 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" // SOP: token di sini
+          "Authorization": `Bearer ${process.env.NOTION_TOKEN}`,
+          "User-Agent": "WahahaGame/1.0"   
         },
-        body: event.body
+        body: event.body || "{}"
       }
     );
 
     const data = await response.text();
 
     return {
-      statusCode: 200,
+      statusCode: response.status,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
@@ -31,4 +32,3 @@ exports.handler = async (event, context) => {
     };
   }
 };
-
