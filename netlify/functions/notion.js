@@ -1,7 +1,7 @@
 exports.handler = async (event, context) => {
   const NOTION_TOKEN = (process.env.NOTION_TOKEN || "").trim();
 
-  console.log("TOKEN PREFIX:", NOTION_TOKEN.slice(0, 8));  // cuma buat cek
+  console.log("TOKEN PREFIX:", NOTION_TOKEN;  // cuma buat cek
 
   try {
     const response = await fetch(
