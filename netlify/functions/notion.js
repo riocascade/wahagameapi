@@ -1,30 +1,22 @@
 exports.handler = async (event, context) => {
-  const NOTION_TOKEN = (process.env.NOTION_TOKEN || "").trim();
-
-  console.log("TOKEN PREFIX:", NOTION_TOKEN);  // cuma buat cek
+ console.log("TOKEN IN NETLIFY:", process.env.NOTION_TOKEN);
 
   try {
     const response = await fetch(
       "https://api.notion.com/v1/databases/2b2fef65a2c18086a3fffc774b6e7aeb/query",
       {
-        method: "POST",
+        method: 'POST',
         headers: {
           "Content-Type": "application/json",
           "Notion-Version": "2022-06-28",
-          "Authorization": `Bearer ${NOTION_TOKEN}`,
-          "User-Agent": "WahahaGame/1.0"
+          "Authorization": `Bearer ${process.env.NOTION_TOKEN}`,
+          "User-Agent": "WahahaGame/1.0"   
         },
-        // untuk tes, kirim body paling sederhana dulu
-        body: JSON.stringify({
-          page_size: 1
-        })
+        body: event.body || "{}"
       }
     );
 
-    const text = await response.text();
-
-    console.log("NOTION STATUS:", response.status);
-    console.log("NOTION BODY:", text);
+    const data = await response.text();
 
     return {
       statusCode: response.status,
@@ -33,10 +25,9 @@ exports.handler = async (event, context) => {
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json"
       },
-      body: text
+      body: data
     };
   } catch (err) {
-    console.error("FUNCTION ERROR:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message })
