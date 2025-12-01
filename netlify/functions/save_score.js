@@ -5,7 +5,7 @@ exports.handler = async (event, context) => {
     const payload = {
       parent: { database_id: process.env.NOTION_DATABASE_ID },
       properties: {
-        "Phone": { 
+        "Mobile Phone": { 
           rich_text: [{ text: { content: phone }}]
         },
         "Score": { 
