@@ -2,42 +2,88 @@ exports.handler = async (event, context) => {
   try {
     const { phone, score } = JSON.parse(event.body);
 
-    const payload = {
-      parent: { database_id: process.env.NOTION_DATABASE_ID },
-      properties: {
-        "Mobile Phone": { 
-          rich_text: [{ text: { content: phone }}]
-        },
-        "Score": { 
-          number: score 
-        },
-        "Date": { 
-          date: { start: new Date().toISOString() }
-        }
+    // 1) QUERY existing data
+    const queryPayload = {
+      filter: {
+        property: "Mobile Phone",
+        number: { equals: phone }
       }
     };
 
-    const response = await fetch("https://api.notion.com/v1/pages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28",
-        "Authorization": `Bearer ${process.env.NOTION_TOKEN}`
-      },
-      body: JSON.stringify(payload),
-    });
+    const queryRes = await fetch(
+      `https://api.notion.com/v1/databases/${process.env.NOTION_DATABASE_ID}/query`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Notion-Version": "2022-06-28",
+          "Authorization": `Bearer ${process.env.NOTION_TOKEN}`
+        },
+        body: JSON.stringify(queryPayload)
+      }
+    );
 
-    const data = await response.text();
+    const queryData = await queryRes.json();
+
+    if (!queryData.results || queryData.results.length === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Mobile Phone not found in database" })
+      };
+    }
+
+    // 2) Ambil pageId dan score lama
+    const page = queryData.results[0];
+    const pageId = page.id;
+
+    // ambil score existing dari Notion
+    const oldScore = page.properties["Score"].number;
+
+    // 3) bandingkan score baru dengan oldScore
+    if (score <= oldScore) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: "Score not updated — new score is not higher",
+          oldScore: oldScore,
+          newScore: score
+        })
+      };
+    }
+
+    // 4) Update karena score lebih tinggi
+    const updatePayload = {
+      properties: {
+        "Score": { number: score },
+        "Date": { date: { start: new Date().toISOString() } }
+      }
+    };
+
+    const updateRes = await fetch(
+      `https://api.notion.com/v1/pages/${pageId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Notion-Version": "2022-06-28",
+          "Authorization": `Bearer ${process.env.NOTION_TOKEN}`
+        },
+        body: JSON.stringify(updatePayload)
+      }
+    );
+
+    const updateData = await updateRes.text();
 
     return {
-      statusCode: response.status,
+      statusCode: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json"
       },
-      body: data
+      body: updateData
     };
+
   } catch (err) {
     return {
       statusCode: 500,
