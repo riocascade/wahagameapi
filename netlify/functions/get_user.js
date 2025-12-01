@@ -3,7 +3,7 @@ exports.handler = async (event, context) => {
 
   try {
     const response = await fetch(
-      "https://api.notion.com/v1/databases/${process.env.NOTION_DATABASE_ID}/query",
+      `https://api.notion.com/v1/databases/${process.env.NOTION_DATABASE_ID}/query`,
       {
         method: 'POST',
         headers: {
