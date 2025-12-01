@@ -76,7 +76,7 @@ exports.handler = async (event, context) => {
     const updatePayload = {
       properties: {
         "Score": { number: score },
-        "Date": { date: { start: new Date().toISOString() } }
+        "Last updated score": { date: { start: new Date().toISOString() } }
       }
     };
 
