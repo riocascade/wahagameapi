@@ -1,4 +1,18 @@
 exports.handler = async (event, context) => {
+
+  // 💥 Tambahkan ini dulu: respon untuk preflight CORS OPTIONS
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS"
+      },
+      body: ""
+    };
+  }
+
   try {
     const { phone, score } = JSON.parse(event.body);
 
@@ -28,6 +42,10 @@ exports.handler = async (event, context) => {
     if (!queryData.results || queryData.results.length === 0) {
       return {
         statusCode: 404,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        },
         body: JSON.stringify({ error: "Mobile Phone not found in database" })
       };
     }
@@ -36,13 +54,16 @@ exports.handler = async (event, context) => {
     const page = queryData.results[0];
     const pageId = page.id;
 
-    // ambil score existing dari Notion
     const oldScore = page.properties["Score"].number;
 
-    // 3) bandingkan score baru dengan oldScore
+    // 3) Cek apakah skor baru > skor lama
     if (score <= oldScore) {
       return {
         statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        },
         body: JSON.stringify({
           message: "Score not updated — new score is not higher",
           oldScore: oldScore,
@@ -51,7 +72,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 4) Update karena score lebih tinggi
+    // 4) Update karena skor lebih tinggi
     const updatePayload = {
       properties: {
         "Score": { number: score },
@@ -78,8 +99,7 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json"
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
       },
       body: updateData
     };
@@ -87,6 +107,10 @@ exports.handler = async (event, context) => {
   } catch (err) {
     return {
       statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      },
       body: JSON.stringify({ error: err.message })
     };
   }
