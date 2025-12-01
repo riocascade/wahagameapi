@@ -5,8 +5,8 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS"
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*"
       },
       body: ""
     };
@@ -42,7 +42,7 @@ exports.handler = async (event, context) => {
         statusCode: 404,
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({ error: "Mobile Phone not found in database" })
       };
