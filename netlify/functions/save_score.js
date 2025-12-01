@@ -42,7 +42,7 @@ exports.handler = async (event, context) => {
         statusCode: 404,
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "*"
+          "Access-Control-Allow-Headers": "Content-Type, Authorization"
         },
         body: JSON.stringify({ error: "Mobile Phone not found in database" })
       };
@@ -65,3 +65,80 @@ exports.handler = async (event, context) => {
       };
 
       const updateRes = await fetch(
+        `https://api.notion.com/v1/pages/${pageId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Notion-Version": "2022-06-28",
+            "Authorization": `Bearer ${process.env.NOTION_TOKEN}`
+          },
+          body: JSON.stringify(updatePayload)
+        }
+      );
+
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        },
+        body: JSON.stringify({
+          message: "Score not updated — new score is not higher",
+          oldScore: oldScore,
+          newScore: score,
+          playCount: newPlayCount
+        })
+      };
+    }
+
+    // ✔ Score lebih tinggi
+    // Update Score + Play Count + Play Time
+    const updatePayload = {
+      properties: {
+        "Score": { number: score },
+        "Play Time": { number: time },
+        "Last updated score": { date: { start: new Date().toISOString() } },
+        "Play Count": { number: newPlayCount }
+      }
+    };
+
+    const updateRes = await fetch(
+      `https://api.notion.com/v1/pages/${pageId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Notion-Version": "2022-06-28",
+          "Authorization": `Bearer ${process.env.NOTION_TOKEN}`
+        },
+        body: JSON.stringify(updatePayload)
+      }
+    );
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*"
+      },
+      body: JSON.stringify({
+        message: "Score updated + time updated + play count incremented",
+        oldScore: oldScore,
+        updatedScore: score,
+        playTime: time,
+        playCount: newPlayCount
+      })
+    };
+
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      },
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
