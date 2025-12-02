@@ -15,10 +15,11 @@ exports.handler = async (event, context) => {
   try {
     const { phone, score, time } = JSON.parse(event.body);
 
+    // ✔ FILTER untuk kolom bertipe Phone
     const queryPayload = {
       filter: {
         property: "Mobile Phone",
-        number: { equals: phone }
+        phone: { equals: phone }
       }
     };
 
@@ -42,7 +43,7 @@ exports.handler = async (event, context) => {
         statusCode: 404,
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({ error: "Mobile Phone not found in database" })
       };
@@ -55,8 +56,7 @@ exports.handler = async (event, context) => {
     const oldPlayCount = page.properties["Play Count"].number || 0;
     const newPlayCount = oldPlayCount + 1;
 
-    // ❗ IF score tidak lebih tinggi:
-    // update Play Count saja — time tidak diupdate!
+    // ❗ Score tidak lebih tinggi → hanya tambah Play Count
     if (score <= oldScore) {
       const updatePayload = {
         properties: {
@@ -81,25 +81,30 @@ exports.handler = async (event, context) => {
         statusCode: 200,
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
           message: "Score not updated — new score is not higher",
-          oldScore: oldScore,
+          oldScore,
           newScore: score,
           playCount: newPlayCount
         })
       };
     }
 
-    // ✔ Score lebih tinggi
-    // Update Score + Play Count + Play Time
+    // ✔ Jika score lebih tinggi:
+    // Update Score + PlayTime + PlayCount
     const updatePayload = {
       properties: {
         "Score": { number: score },
         "Play Time": { number: time },
         "Last updated score": { date: { start: new Date().toISOString() } },
-        "Play Count": { number: newPlayCount }
+        "Play Count": { number: newPlayCount },
+        
+        // optional — jika kamu ingin memastikan kolom ini terupdate
+        "Mobile Phone": { 
+          phone_number: phone 
+        }
       }
     };
 
@@ -124,7 +129,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         message: "Score updated + time updated + play count incremented",
-        oldScore: oldScore,
+        oldScore,
         updatedScore: score,
         playTime: time,
         playCount: newPlayCount
@@ -136,7 +141,7 @@ exports.handler = async (event, context) => {
       statusCode: 500,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({ error: err.message })
     };
