@@ -1,4 +1,7 @@
 exports.handler = async (event, context) => {
+	
+	console.log("hello");
+	
   try {
     const { phone, score } = JSON.parse(event.body);
 
