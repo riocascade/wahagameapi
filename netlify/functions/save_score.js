@@ -1,5 +1,7 @@
 exports.handler = async (event, context) => {
 
+   console.log("RAW REQUEST BODY:", event.body);
+
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
