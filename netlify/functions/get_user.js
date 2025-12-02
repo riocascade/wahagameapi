@@ -1,5 +1,7 @@
 exports.handler = async (event, context) => {
  console.log("TOKEN IN NETLIFY:", process.env.NOTION_TOKEN);
+ console.log("RAW REQUEST BODY:", event.body);
+
 
   try {
     const response = await fetch(
