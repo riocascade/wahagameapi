@@ -19,7 +19,7 @@ exports.handler = async (event, context) => {
     const queryPayload = {
       filter: {
         property: "Mobile Phone",
-        phone: { equals: phone }
+        phone_number: { equals: phone }
       }
     };
 
