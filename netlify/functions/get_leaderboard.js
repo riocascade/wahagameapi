@@ -1,18 +1,18 @@
 exports.handler = async (event, context) => {
   console.log("TOKEN IN NETLIFY:", process.env.NOTION_TOKEN);
 
-	if (event.httpMethod === "OPTIONS") {
-	  return {
-	    statusCode: 200,
-	    headers: {
-	      "Access-Control-Allow-Origin": "*",
-	      "Access-Control-Allow-Headers": "*",
-	      "Access-Control-Allow-Methods": "*"
-	    },
-	    body: ""
-	  };
-	}
-
+  // Handle preflight CORS
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*"
+      },
+      body: ""
+    };
+  }
 
   try {
     const response = await fetch(
@@ -42,11 +42,11 @@ exports.handler = async (event, context) => {
     const leaderboard = result.results.map(item => {
       const props = item.properties;
       return {
-		  score: props.Score?.number || 0,
-		  mobilePhone: props["Mobile Phone"]?.phone_number || "",
-		  firstName: props["First Name"]?.rich_text?.[0]?.plain_text || "",
-		  lastName: props["Last Name"]?.rich_text?.[0]?.plain_text || "",
-		};
+        score: props.Score?.number || 0,
+        mobilePhone: props["Mobile Phone"]?.phone_number || "",
+        firstName: props["First Name"]?.rich_text?.[0]?.plain_text || "",
+        lastName: props["Last Name"]?.rich_text?.[0]?.plain_text || "",
+      };
     });
 
     return {
@@ -54,14 +54,21 @@ exports.handler = async (event, context) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*",
         "Content-Type": "application/json"
       },
       body: JSON.stringify(leaderboard)
     };
 
   } catch (err) {
+    console.error("ERROR:", err);
     return {
       statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*"
+      },
       body: JSON.stringify({ error: err.message })
     };
   }
