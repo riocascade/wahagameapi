@@ -1,6 +1,19 @@
 exports.handler = async (event, context) => {
   console.log("TOKEN IN NETLIFY:", process.env.NOTION_TOKEN);
 
+	if (event.httpMethod === "OPTIONS") {
+	  return {
+	    statusCode: 200,
+	    headers: {
+	      "Access-Control-Allow-Origin": "*",
+	      "Access-Control-Allow-Headers": "*",
+	      "Access-Control-Allow-Methods": "*"
+	    },
+	    body: ""
+	  };
+	}
+
+
   try {
     const response = await fetch(
       `https://api.notion.com/v1/databases/${process.env.NOTION_DATABASE_ID}/query`,
