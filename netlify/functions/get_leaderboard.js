@@ -18,7 +18,7 @@ exports.handler = async (event, context) => {
     const response = await fetch(
       `https://api.notion.com/v1/databases/${process.env.NOTION_DATABASE_ID}/query`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Notion-Version": "2022-06-28",
@@ -29,8 +29,8 @@ exports.handler = async (event, context) => {
           page_size: 20,
           sorts: [
             {
-              "property": "score",
-              "direction": "descending"
+              property: "Score",
+              direction: "descending"
             }
           ]
         })
@@ -39,13 +39,21 @@ exports.handler = async (event, context) => {
 
     const result = await response.json();
 
+    if (!result.results) {
+      throw new Error("Notion query failed: " + (result.message || "no results field"));
+    }
+
     const leaderboard = result.results.map(item => {
       const props = item.properties;
       return {
         score: props.Score?.number || 0,
         mobilePhone: props["Mobile Phone"]?.phone_number || "",
-        firstName: props["First Name"]?.rich_text?.[0]?.plain_text || "",
-        lastName: props["Last Name"]?.rich_text?.[0]?.plain_text || "",
+        
+        // First Name is TITLE
+        firstName: props["First Name"]?.title?.[0]?.plain_text || "",
+        
+        // Last Name is RICH TEXT
+        lastName: props["Last Name"]?.rich_text?.[0]?.plain_text || ""
       };
     });
 
