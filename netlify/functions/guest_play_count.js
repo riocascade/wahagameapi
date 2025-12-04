@@ -1,7 +1,14 @@
 exports.handler = async (event, context) => {
 
-  // === FIX 1: CORS untuk AJAX Construct 3 ===
+  // === SUPER LOGGING ===
+  console.log("====== REQUEST RECEIVED ======");
+  console.log("METHOD:", event.httpMethod);
+  console.log("BODY RAW:", event.body);
+  console.log("HEADERS:", JSON.stringify(event.headers, null, 2));
+
+  // CORS
   if (event.httpMethod === "OPTIONS") {
+    console.log("OPTIONS REQUEST HANDLED");
     return {
       statusCode: 200,
       headers: {
@@ -16,7 +23,8 @@ exports.handler = async (event, context) => {
   try {
     const targetPhone = "088888888888";
 
-    // 1. Query row Notion berdasarkan Mobile Phone
+    console.log("Querying Notion for phone:", targetPhone);
+
     const queryPayload = {
       filter: {
         property: "Mobile Phone",
@@ -37,11 +45,15 @@ exports.handler = async (event, context) => {
       }
     );
 
-    const queryText = await queryRes.text();
-    console.log("QUERY RAW:", queryText);   // Debug tambahan bila gagal
-    const queryData = JSON.parse(queryText);
+    console.log("QUERY STATUS:", queryRes.status, "OK?:", queryRes.ok);
+
+    const queryRaw = await queryRes.text();
+    console.log("QUERY RAW RESPONSE:", queryRaw);
+
+    const queryData = JSON.parse(queryRaw);
 
     if (!queryData.results || queryData.results.length === 0) {
+      console.log("Phone number NOT FOUND in Notion.");
       return {
         statusCode: 404,
         headers: { "Access-Control-Allow-Origin": "*" },
@@ -52,8 +64,9 @@ exports.handler = async (event, context) => {
     const page = queryData.results[0];
     const pageId = page.id;
 
-    // === FIX 2: Tangani Play Count kosong/null ===
     const oldPlayCountRaw = page.properties["Play Count"].number;
+    console.log("OLD PLAY COUNT RAW:", oldPlayCountRaw);
+
     const safePlayCount =
       oldPlayCountRaw === null || oldPlayCountRaw === undefined
         ? 0
@@ -61,7 +74,8 @@ exports.handler = async (event, context) => {
 
     const newPlayCount = safePlayCount + 1;
 
-    // 3. Update Play Count pada row tersebut
+    console.log("NEW PLAY COUNT:", newPlayCount);
+
     const updatePayload = {
       properties: {
         "Play Count": { number: newPlayCount }
@@ -81,8 +95,12 @@ exports.handler = async (event, context) => {
       }
     );
 
-    const updateText = await updateRes.text();
-    console.log("UPDATE RAW:", updateText); // Debug bila gagal
+    console.log("UPDATE STATUS:", updateRes.status, "OK?:", updateRes.ok);
+
+    const updateRaw = await updateRes.text();
+    console.log("UPDATE RAW RESPONSE:", updateRaw);
+
+    console.log("====== DONE SUCCESSFULLY ======");
 
     return {
       statusCode: 200,
@@ -95,7 +113,9 @@ exports.handler = async (event, context) => {
     };
 
   } catch (err) {
-    console.error("ERROR:", err);
+    console.error("FULL ERROR OBJECT:", err);
+    console.error("STACK:", err.stack);
+
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
