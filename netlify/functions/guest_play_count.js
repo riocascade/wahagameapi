@@ -1,4 +1,18 @@
 exports.handler = async (event, context) => {
+
+  // === FIX 1: CORS untuk AJAX Construct 3 ===
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*"
+      },
+      body: ""
+    };
+  }
+
   try {
     const targetPhone = "088888888888";
 
@@ -23,7 +37,9 @@ exports.handler = async (event, context) => {
       }
     );
 
-    const queryData = await queryRes.json();
+    const queryText = await queryRes.text();
+    console.log("QUERY RAW:", queryText);   // Debug tambahan bila gagal
+    const queryData = JSON.parse(queryText);
 
     if (!queryData.results || queryData.results.length === 0) {
       return {
@@ -36,9 +52,14 @@ exports.handler = async (event, context) => {
     const page = queryData.results[0];
     const pageId = page.id;
 
-    // 2. Ambil Play Count lama
-    const oldPlayCount = page.properties["Play Count"].number || 0;
-    const newPlayCount = oldPlayCount + 1;
+    // === FIX 2: Tangani Play Count kosong/null ===
+    const oldPlayCountRaw = page.properties["Play Count"].number;
+    const safePlayCount =
+      oldPlayCountRaw === null || oldPlayCountRaw === undefined
+        ? 0
+        : oldPlayCountRaw;
+
+    const newPlayCount = safePlayCount + 1;
 
     // 3. Update Play Count pada row tersebut
     const updatePayload = {
@@ -60,17 +81,21 @@ exports.handler = async (event, context) => {
       }
     );
 
+    const updateText = await updateRes.text();
+    console.log("UPDATE RAW:", updateText); // Debug bila gagal
+
     return {
       statusCode: 200,
       headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
         message: `Play Count updated for ${targetPhone}`,
-        oldPlayCount,
+        oldPlayCount: safePlayCount,
         newPlayCount
       })
     };
 
   } catch (err) {
+    console.error("ERROR:", err);
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
