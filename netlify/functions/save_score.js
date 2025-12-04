@@ -17,7 +17,7 @@ exports.handler = async (event, context) => {
   try {
     const { phone, score, time } = JSON.parse(event.body);
 
-    // ✔ FILTER untuk kolom bertipe Phone
+    // Filter berdasarkan Mobile Phone
     const queryPayload = {
       filter: {
         property: "Mobile Phone",
@@ -54,63 +54,27 @@ exports.handler = async (event, context) => {
     const page = queryData.results[0];
     const pageId = page.id;
 
-    const oldScore = page.properties["Score"].number;
+    // ----- OLD VALUES -----
+    const oldScore = page.properties["Score"].number || 0;
     const oldPlayCount = page.properties["Play Count"].number || 0;
-    const newPlayCount = oldPlayCount + 1;
-
-    // ✔ Akumulasi Play Time
     const oldPlayTime = page.properties["Play Time"].number || 0;
+
+    // ----- NEW ACCUMULATED VALUES -----
+    const newScore = oldScore + score;
+    const newPlayCount = oldPlayCount + 1;
     const newPlayTime = oldPlayTime + time;
 
-    // ❗ Score tidak lebih tinggi → hanya tambah Play Count + Play Time
-    if (score <= oldScore) {
-      const updatePayload = {
-        properties: {
-          "Play Count": { number: newPlayCount },
-          "Play Time": { number: newPlayTime }
-        }
-      };
-
-      const updateRes = await fetch(
-        `https://api.notion.com/v1/pages/${pageId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28",
-            "Authorization": `Bearer ${process.env.NOTION_TOKEN}`
-          },
-          body: JSON.stringify(updatePayload)
-        }
-      );
-
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "*"
-        },
-        body: JSON.stringify({
-          message: "Score not updated — new score is not higher",
-          oldScore,
-          newScore: score,
-          playCount: newPlayCount,
-          playTime: newPlayTime
-        })
-      };
-    }
-
-    // ✔ Jika score lebih tinggi → update score + akumulasi Play Time + increment Play Count
+    // Update semua nilai
     const updatePayload = {
       properties: {
-        "Score": { number: score },
+        "Score": { number: newScore },
         "Play Time": { number: newPlayTime },
-        "Last updated score": { date: { start: new Date().toISOString() } },
         "Play Count": { number: newPlayCount },
+        "Last updated score": { date: { start: new Date().toISOString() } },
 
         // optional
-        "Mobile Phone": {
-          phone_number: phone
+        "Mobile Phone": { 
+          phone_number: phone 
         }
       }
     };
@@ -135,8 +99,26 @@ exports.handler = async (event, context) => {
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Score updated + play time accumulated + play count incremented",
+        message: "Score accumulated + play time accumulated + play count incremented",
         oldScore,
-        updatedScore: score,
-        playTime: newPlayTime,
-        playCount: n
+        addedScore: score,
+        newScore,
+        oldPlayTime,
+        addedPlayTime: time,
+        newPlayTime,
+        oldPlayCount,
+        newPlayCount
+      })
+    };
+
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*"
+      },
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
