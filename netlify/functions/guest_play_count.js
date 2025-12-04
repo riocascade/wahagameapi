@@ -28,14 +28,23 @@ exports.handler = async (event, context) => {
       try {
         body = JSON.parse(event.body);
       } catch (e) {
-        // Jika body bukan JSON (mis. hanya "123"), coba parse sebagai angka
         const maybeNumber = Number(event.body);
-        body = isNaN(maybeNumber) ? { raw: event.body } : { time: maybeNumber };
+        body = isNaN(maybeNumber)
+          ? { raw: event.body }
+          : { time: maybeNumber };
       }
     }
 
     // Ambil time dengan fallback 0
-    const time = typeof body.time === "number" ? body.time : (typeof body === "number" ? body : (body.time ? Number(body.time) : 0));
+    const time =
+      typeof body.time === "number"
+        ? body.time
+        : typeof body === "number"
+        ? body
+        : body.time
+        ? Number(body.time)
+        : 0;
+
     console.log("PARSED time:", time, "FROM BODY:", body);
 
     console.log("Querying Notion for phone:", targetPhone);
@@ -66,7 +75,6 @@ exports.handler = async (event, context) => {
     console.log("QUERY RAW RESPONSE:", queryRaw);
 
     if (!queryRes.ok) {
-      // Kirim balik isi error Notion untuk debugging (jangan expose token dsb)
       return {
         statusCode: 502,
         headers: { "Access-Control-Allow-Origin": "*" },
@@ -88,7 +96,8 @@ exports.handler = async (event, context) => {
     const page = queryData.results[0];
     const pageId = page.id;
 
-    const oldPlayCountRaw = page.properties["Play Count"] && page.properties["Play Count"].number;
+    // === SAFE PLAY COUNT ===
+    const oldPlayCountRaw = page.properties["Play Count"]?.number;
     console.log("OLD PLAY COUNT RAW:", oldPlayCountRaw);
 
     const safePlayCount =
@@ -97,17 +106,25 @@ exports.handler = async (event, context) => {
         : oldPlayCountRaw;
 
     const newPlayCount = safePlayCount + 1;
-
     console.log("NEW PLAY COUNT:", newPlayCount);
 
-    // Pastikan nama property di Notion persis sama:
-    // "Play Count" -> Number
-    // "Play Time" -> Number
-    // "Last updated score" -> Date
+    // === SAFE PLAY TIME (AKUMULATIF) ===
+    const oldPlayTimeRaw = page.properties["Play Time"]?.number;
+    console.log("OLD PLAY TIME RAW:", oldPlayTimeRaw);
+
+    const safePlayTime =
+      oldPlayTimeRaw === null || oldPlayTimeRaw === undefined
+        ? 0
+        : oldPlayTimeRaw;
+
+    const newPlayTime = safePlayTime + (Number.isFinite(time) ? time : 0);
+    console.log("NEW PLAY TIME:", newPlayTime);
+
+    // === UPDATE PAYLOAD ===
     const updatePayload = {
       properties: {
         "Play Count": { number: newPlayCount },
-        "Play Time": { number: Number.isFinite(time) ? time : 0 },
+        "Play Time": { number: newPlayTime },
         "Last updated score": { date: { start: new Date().toISOString() } }
       }
     };
@@ -144,9 +161,11 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
-        message: `Play Count, Play Time, and Last updated score updated for ${targetPhone}`,
+        message: `Play Count + Play Time accumulated + Last updated score updated for ${targetPhone}`,
         oldPlayCount: safePlayCount,
-        newPlayCount
+        newPlayCount,
+        oldPlayTime: safePlayTime,
+        newPlayTime
       })
     };
 
