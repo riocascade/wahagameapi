@@ -22,6 +22,7 @@ exports.handler = async (event, context) => {
 
   try {
     const targetPhone = "088888888888";
+    const time = JSON.parse(event.body);
 
     console.log("Querying Notion for phone:", targetPhone);
 
@@ -78,7 +79,9 @@ exports.handler = async (event, context) => {
 
     const updatePayload = {
       properties: {
-        "Play Count": { number: newPlayCount }
+        "Play Count": { number: newPlayCount },
+        "Play Time": { number: time },
+        "Last updated score": { date: { start: new Date().toISOString() } },
       }
     };
 
