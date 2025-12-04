@@ -1,6 +1,6 @@
 exports.handler = async (event, context) => {
 
-   console.log("RAW REQUEST BODY:", event.body);
+  console.log("RAW REQUEST BODY:", event.body);
 
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -58,11 +58,16 @@ exports.handler = async (event, context) => {
     const oldPlayCount = page.properties["Play Count"].number || 0;
     const newPlayCount = oldPlayCount + 1;
 
-    // ❗ Score tidak lebih tinggi → hanya tambah Play Count
+    // ✔ Akumulasi Play Time
+    const oldPlayTime = page.properties["Play Time"].number || 0;
+    const newPlayTime = oldPlayTime + time;
+
+    // ❗ Score tidak lebih tinggi → hanya tambah Play Count + Play Time
     if (score <= oldScore) {
       const updatePayload = {
         properties: {
-          "Play Count": { number: newPlayCount }
+          "Play Count": { number: newPlayCount },
+          "Play Time": { number: newPlayTime }
         }
       };
 
@@ -89,23 +94,23 @@ exports.handler = async (event, context) => {
           message: "Score not updated — new score is not higher",
           oldScore,
           newScore: score,
-          playCount: newPlayCount
+          playCount: newPlayCount,
+          playTime: newPlayTime
         })
       };
     }
 
-    // ✔ Jika score lebih tinggi:
-    // Update Score + PlayTime + PlayCount
+    // ✔ Jika score lebih tinggi → update score + akumulasi Play Time + increment Play Count
     const updatePayload = {
       properties: {
         "Score": { number: score },
-        "Play Time": { number: time },
+        "Play Time": { number: newPlayTime },
         "Last updated score": { date: { start: new Date().toISOString() } },
         "Play Count": { number: newPlayCount },
-        
-        // optional — jika kamu ingin memastikan kolom ini terupdate
-        "Mobile Phone": { 
-          phone_number: phone 
+
+        // optional
+        "Mobile Phone": {
+          phone_number: phone
         }
       }
     };
@@ -130,22 +135,8 @@ exports.handler = async (event, context) => {
         "Access-Control-Allow-Headers": "*"
       },
       body: JSON.stringify({
-        message: "Score updated + time updated + play count incremented",
+        message: "Score updated + play time accumulated + play count incremented",
         oldScore,
         updatedScore: score,
-        playTime: time,
-        playCount: newPlayCount
-      })
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "*"
-      },
-      body: JSON.stringify({ error: err.message })
-    };
-  }
-};
+        playTime: newPlayTime,
+        playCount: n
