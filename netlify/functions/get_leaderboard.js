@@ -43,7 +43,38 @@ exports.handler = async (event, context) => {
       throw new Error("Notion query failed: " + (result.message || "no results field"));
     }
 
+    // ----------------------------------------------------
+    // FILTER sebelum mapping
+    // ----------------------------------------------------
     const leaderboard = result.results
+      .filter(item => {
+        const props = item.properties || {};
+
+        const phone = props["Mobile Phone"]?.phone_number || "";
+        const firstName = props["First Name"]?.title?.[0]?.plain_text || "";
+        const lastName = props["Last Name"]?.rich_text?.[0]?.plain_text || "";
+        const score =
+          typeof props.Score?.number === "number" ? props.Score.number : null;
+
+        // 1) Exclude jika nomor EXACT match
+        if (phone === "088888888888") return false;
+
+        // 2) Exclude jika baris tampak dikosongkan (semua field kosong)
+        if (
+          phone === "" &&
+          firstName === "" &&
+          lastName === "" &&
+          (score === null || score === 0)
+        ) {
+          return false;
+        }
+
+        return true;
+      })
+
+      // ----------------------------------------------------
+      // MAP hasil data yang sudah bersih
+      // ----------------------------------------------------
       .map(item => {
         const props = item.properties;
         return {
@@ -52,10 +83,11 @@ exports.handler = async (event, context) => {
           firstName: props["First Name"]?.title?.[0]?.plain_text || "",
           lastName: props["Last Name"]?.rich_text?.[0]?.plain_text || ""
         };
-      })
-      // 🔥 FILTER untuk menghapus nomor tertentu
-      .filter(entry => entry.mobilePhone !== "088888888888");
+      });
 
+    // ----------------------------------------------------
+    // RETURN RESPONSE
+    // ----------------------------------------------------
     return {
       statusCode: 200,
       headers: {
